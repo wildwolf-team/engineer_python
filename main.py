@@ -11,7 +11,7 @@ import threading
 def parse_opt():
     parser = argparse.ArgumentParser()
     # 自启动 default 要改成绝对路径
-    parser.add_argument('--weights', nargs='+', type=str, default='./best.pt', help='model path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default='/home/oyc/workspace/python_thread/best (3).pt', help='model path(s)')
     opt = parser.parse_args()
     return opt
 
