@@ -61,8 +61,7 @@ if __name__ == "__main__":
     Video = video_capture.Video_capture(1)
     Fun = function.Function(**vars(opt))
 
-    thread1 = threading.Thread(target=run,args=(Video, Fun, ), daemon=True)
-    thread2 = threading.Thread(target=(Fun.send_data))
-
+    thread1 = threading.Thread(target=(Fun.send_data), daemon=True)
     thread1.start()
-    thread2.start()
+
+    run(Video,Fun)
