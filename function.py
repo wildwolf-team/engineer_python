@@ -2,11 +2,8 @@ from pickle import FALSE
 from time import time
 from utils.general import check_img_size
 from utils.torch_utils import select_device
-import math
 import cv2
 import numpy as np
-from sympy import false, true
-import cv2
 import torch
 import numpy as np
 from models.common import DetectMultiBackend
@@ -18,19 +15,19 @@ from typing import List
 
 class Function:
 
-    DEVIATION_X = -1
-    DIRECTION = -1
-    SEND_DATA_1 = -1
-    SEND_DATA_0 = -1
-    TARGET_X = 400
-    def __init__(self,weights):
+    DEVIATION_X = 0
+    DIRECTION = 0
+    HIGH_EIGHT = 0
+    LOW_EIGHT = 0
+    TARGET_X = 518
+
+    def __init__(self,weights,is_save_Image=0):
         self.ser = serial.Serial()
         self.ser.port = "/dev/ttyUSB0"
-        # self.ser.baudrate = 115200
         self.ser.baudrate = 921600
         self.ser.bytesize = 8
         self.ser.parity = 'N'
-        self.ser.stopbits = 1
+        self.ser.stopbits = 1 
         try:
             self.ser.open()
         except:
@@ -40,19 +37,18 @@ class Function:
         self.device = select_device('cpu')
         self.model = DetectMultiBackend(weights, device=self.device)
         self.stride = self.model.stride 
-        # stride, names, pt, jit, onnx, engine = model.stride, model.names, model.pt, model.jit, model.onnx, model.engine
         self.imgsz = check_img_size((320,320),s=self.stride)
         self.model.model.float()
-    
+
+        if is_save_Image == 1:
+            self.save_Image = 1
+    # 排序
     def radix_sort(arr:List[int]):
-        n = len(str(max(arr)))  # 记录最大值的位数
-        for k in range(n):#n轮排序
-            # 每一轮生成10个列表
-            bucket_list=[[] for i in range(10)]#因为每一位数字都是0~9，故建立10个桶
+        n = len(str(max(arr)))  
+        for k in range(n):
+            bucket_list=[[] for i in range(10)]
             for i in arr:
-                # 按第k位放入到桶中
                 bucket_list[i//(10**k)%10].append(i)
-            # 按当前桶的顺序重排列表
             arr=[j for i in bucket_list for j in i]
         return arr
 
@@ -100,28 +96,32 @@ class Function:
         img = img.float()
         img /= 255.
 
+        self.store_frame = frame
+        Function.DEVIATION_X = 0
+        Function.DIRECTION = 0
+        Function.HIGH_EIGHT = 0
+        Function.LOW_EIGHT = 0
+
         if len(img.shape) == 3:
             img = img[None]
 
         pred = model(img)
         pred = non_max_suppression(pred, conf_thres, iou_thres, agnostic=False)
         aims = []
-        self.direction = 0
-        self.deviation_x = 0
         confs = []
         arr = []
 
-        for i ,det in enumerate(pred):
+        for i ,det in enumerate(pred): 
             gn = torch.tensor(img0.shape)[[1,0,1,0]]
             if len(det):
                 det[:,:4] = scale_coords(img.shape[2:], det[:, :4],img0.shape).round()
-
                 for *xyxy, conf, cls in reversed(det):
                     xywh = (xyxy2xywh(torch.tensor(xyxy).view(1,4)) / gn).view(-1).tolist()
                     line = (cls, *xywh)
                     aim = ('%g ' * len(line)).rstrip() % line 
                     aim = aim.split(' ')
-                    if float(conf) > 0.4:
+                    if float(conf) > 0.7:
+                        Function.store_image()
                         aims.append(aim)
                         confs.append(float(conf))
 
@@ -139,44 +139,64 @@ class Function:
                     cv2.putText(frame, tag, top_left, cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 255), 4)
 
                     arr.append(int(x_center - Function.TARGET_X))
-               
+
                 if abs(Function.radix_sort(arr)[0]) < abs(Function.radix_sort(arr)[len(arr)-1]):
-                    self.deviation_x = Function.radix_sort(arr)[0]
+                    Function.DEVIATION_X = Function.radix_sort(arr)[0]
                 else:
-                    self.deviation_x = Function.radix_sort(arr)[len(arr)-1]
-                cv2.putText(frame, "x = " + str(self.deviation_x), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
-                if abs(self.deviation_x) < (bottom_right[0]- top_left[0] - 10)/4:
-                    self.deviation_x = 0
-                if self.deviation_x > 0:
-                    self.direction = 1
-                cv2.putText(frame, "x = " + str(self.deviation_x), (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
+                    Function.DEVIATION_X = Function.radix_sort(arr)[len(arr)-1]
 
-            cv2.line(frame, (0, int(img_size[0] * 0.5)), (int(img_size[1]), int(img_size[0] * 0.5)), (255, 0, 255), 3)
+                cv2.putText(frame, "real_x = " + str(Function.DEVIATION_X), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
+
+                Function.HIGH_EIGHT = (Function.DEVIATION_X >> 8) & 0xff
+                Function.LOW_EIGHT = Function.DEVIATION_X  & 0xff
+
+                if Function.TARGET_X == 525:
+                    if abs(Function.DEVIATION_X ) < abs(bottom_right[0]- top_left[0] - 100)/4:
+                        Function.DEVIATION_X  = 0
+                else :
+                    if abs(Function.DEVIATION_X ) < abs(bottom_right[0]- top_left[0] - 200)/4:
+                        Function.DEVIATION_X  = 0
+                if Function.DEVIATION_X > 0:
+                    Function.DIRECTION = 1
+
+                cv2.putText(frame, "judge_x = " + str(Function.DEVIATION_X), (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
+
             cv2.line(frame, (Function.TARGET_X, 0), (Function.TARGET_X, int(img_size[0])), (255, 0, 255), 3)
-
-            self.send_data_0 = (self.deviation_x >> 8) & 0xff
-            self.send_data_1 = self.deviation_x & 0xff
-            
-            Function.DEVIATION_X = self.deviation_x
-            Function.DIRECTION = self.direction
-            Function.SEND_DATA_0 = self.send_data_0
-            Function.SEND_DATA_1 = self.send_data_1
-            cv2.putText(frame, ('S' + str(self.direction) + str(self.send_data_0) + str(self.send_data_1) + 'E'), (0, 150), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
+            cv2.putText(frame, ('direction: ' + str(Function.DIRECTION)), (0, 160), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
+            cv2.putText(frame, ('high_eight: ' + str(Function.HIGH_EIGHT)), (0, 210), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
+            cv2.putText(frame, ('low_eight: ' + str(Function.LOW_EIGHT)), (0, 260), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
             
     def send_data(self):
         while 1:
             time.sleep(0.005)
-            if   Function.SEND_DATA_1 / 100 > 0:
-                self.ser.write(('S' + str(Function.DIRECTION) + str(Function.SEND_DATA_0) + str(Function.SEND_DATA_1) + 'E').encode("utf-8"))
-
-            elif Function.SEND_DATA_1 / 10 > 0:
-                self.ser.write(('S' + str(Function.DIRECTION) + str(Function.SEND_DATA_0) + str(0) + str(Function.SEND_DATA_1) + 'E').encode("utf-8"))
-
-            elif Function.SEND_DATA_1 / 1 > 0:
-                self.ser.write(('S' + str(Function.DIRECTION) + str(Function.SEND_DATA_0) + str(0) + str(0) + str(Function.SEND_DATA_1) + 'E').encode("utf-8"))
-
-            elif Function.DEVIATION_X == 0:
+            if Function.DEVIATION_X == 0:
                 self.ser.write(('S' + str(2) + str(0) + str(0) + str(0) + str(0) + 'E').encode("utf-8"))
                 
+            elif   Function.LOW_EIGHT / 100 > 0:
+                self.ser.write(('S' + str(Function.DIRECTION) + str(Function.HIGH_EIGHT) + str(Function.LOW_EIGHT) + 'E').encode("utf-8"))
+
+            elif Function.LOW_EIGHT / 10 > 0:
+                self.ser.write(('S' + str(Function.DIRECTION) + str(Function.HIGH_EIGHT) + str(0) + str(Function.LOW_EIGHT) + 'E').encode("utf-8"))
+
+            elif Function.LOW_EIGHT / 1 > 0:
+                self.ser.write(('S' + str(Function.DIRECTION) + str(Function.HIGH_EIGHT) + str(0) + str(0) + str(Function.LOW_EIGHT) + 'E').encode("utf-8"))
+
             else:
                 self.ser.write(('S' + str(2) + str(0) + str(0) + str(0) + str(0) + 'E').encode("utf-8"))
+
+    def receive_data(self):
+        while 1:
+            data = self.ser.read(3)
+            if data == b'\x03"E':
+                Function.TARGET_X = 518  #空接
+                print(data)
+            if data == b'\x04"E':
+                Function.TARGET_X = 415  #资源岛
+                print(data)
+            # print(data)
+
+
+    def store_image(self):
+        if self.save_Image == 1:
+            time_name = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+            cv2.imwrite("./Image/"+time_name+".jpg",self.store_frame)
