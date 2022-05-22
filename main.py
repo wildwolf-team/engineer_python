@@ -15,8 +15,6 @@ def parse_opt():
     opt = parser.parse_args()
     return opt
 
-# mode = 0 为原图
-# mode = 1 为处理后的图像 
 def run(Video, Fun, mode = 0):
     
     while (cv2.waitKey(1) & 0xFF) != ord('q'):
@@ -54,7 +52,16 @@ def run(Video, Fun, mode = 0):
     # 释放帧缓存
     mvsdk.CameraAlignFree(Video.pFrameBuffer)
     
-
+'''
+video 
+    0 为不录制视频
+    1 为录制视频
+    默认 0
+run
+    0 为原图
+    1 为putext后的图
+    默认 1
+'''
 if __name__ == "__main__":
     opt = parse_opt()
     # 0 不储存图像
