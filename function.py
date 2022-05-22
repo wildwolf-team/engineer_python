@@ -21,10 +21,11 @@ class Function:
     LOW_EIGHT = 0
     TARGET_X = 0
     FLAG = 1
-    
+
     def __init__(self,weights):
         self.ser = serial.Serial()
         self.ser.port = "/dev/ttyUSB0"
+        # self.ser.baudrate = 115200
         self.ser.baudrate = 921600
         self.ser.bytesize = 8
         self.ser.parity = 'N'
@@ -88,7 +89,7 @@ class Function:
         return im, ratio, (dw, dh)
 
     # 进行推理 绘制图像 结算出最优 发送数据
-    def to_inference(self, frame, device, model, imgsz, stride, conf_thres=0.45, iou_thres=0.45):
+    def to_inference(self, frame, device, model, imgsz, stride,mode = 1, conf_thres=0.45, iou_thres=0.45):
         img_size = frame.shape
         img0 = frame 
         img = Function.letterbox(img0,imgsz,stride=stride)[0]
@@ -123,7 +124,7 @@ class Function:
                     line = (cls, *xywh)
                     aim = ('%g ' * len(line)).rstrip() % line 
                     aim = aim.split(' ')
-                    if float(conf) > 0.6:
+                    if float(conf) > 0.7:
                         aims.append(aim)
                         confs.append(float(conf))
 
@@ -136,18 +137,17 @@ class Function:
                     top_right = (int(x_center + width * 0.5), int(y_center - height * 0.5))
                     bottom_right = (int(x_center + width * 0.5), int(y_center + height * 0.5))
 
-                    cv2.rectangle(frame, top_left, bottom_right, (0, 255, 255), 3, 8)
-                    cv2.putText(frame,str(float(round(confs[i], 2))), top_right, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
-                    cv2.putText(frame, tag, top_left, cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 255), 4)
+                    Function.draw_inference(frame, top_left, top_right, bottom_right, mode)
 
                     arr.append(int(x_center - Function.TARGET_X))
-                    
+
                 if abs(Function.radix_sort(arr)[0]) < abs(Function.radix_sort(arr)[len(arr)-1]):
                     Function.DEVIATION_X = Function.radix_sort(arr)[0]
                 else:
                     Function.DEVIATION_X = Function.radix_sort(arr)[len(arr)-1]
 
-                cv2.putText(frame, "real_x = " + str(Function.DEVIATION_X), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
+                if mode == 1:
+                    cv2.putText(frame, "real_x = " + str(Function.DEVIATION_X), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
 
                 Function.HIGH_EIGHT = (abs(Function.DEVIATION_X) >> 8) & 0xff
                 Function.LOW_EIGHT = abs(Function.DEVIATION_X)  & 0xff
@@ -156,17 +156,13 @@ class Function:
                     if abs(Function.DEVIATION_X ) < 28:
                         Function.DEVIATION_X  = 0
                 else :
-                    if abs(Function.DEVIATION_X ) < 23:
+                    if abs(Function.DEVIATION_X ) < 28:
                         Function.DEVIATION_X  = 0
                 if Function.DEVIATION_X > 0:
                     Function.DIRECTION = 1
 
-                cv2.putText(frame, "judge_x = " + str(Function.DEVIATION_X), (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
-
-            cv2.line(frame, (Function.TARGET_X, 0), (Function.TARGET_X, int(img_size[0])), (255, 0, 255), 3)
-            cv2.putText(frame, ('direction: ' + str(Function.DIRECTION)), (0, 160), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
-            cv2.putText(frame, ('high_eight: ' + str(Function.HIGH_EIGHT)), (0, 210), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
-            cv2.putText(frame, ('low_eight: ' + str(Function.LOW_EIGHT)), (0, 260), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 4)
+            Function.draw_data(frame, img_size, mode)
+            
             
     def send_data(self):
         while 1:
@@ -198,3 +194,17 @@ class Function:
                 Function.FLAG = 0
                 # print(data)
             print(data)
+
+    def draw_inference(frame, top_left, top_right, bottom_right, mode = 1):
+        if mode == 1:
+            cv2.rectangle(frame, top_left, bottom_right, (0, 255, 255), 3, 8)
+            cv2.putText(frame,str(float(round(confs[i], 2))), top_right, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
+            cv2.putText(frame, tag, top_left, cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 255), 4)
+
+    def draw_data(frame, img_size, mode = 1):
+        if mode == 1:
+            cv2.putText(frame, "judge_x = " + str(Function.DEVIATION_X), (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
+            cv2.line(frame, (Function.TARGET_X, 0), (Function.TARGET_X, int(img_size[0])), (255, 0, 255), 3)
+            cv2.putText(frame, ('direction: ' + str(Function.DIRECTION)), (0, 160), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
+            cv2.putText(frame, ('high_eight: ' + str(Function.HIGH_EIGHT)), (0, 210), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
+            cv2.putText(frame, ('low_eight: ' + str(Function.LOW_EIGHT)), (0, 260), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
