@@ -137,7 +137,7 @@ class Function:
                     top_right = (int(x_center + width * 0.5), int(y_center - height * 0.5))
                     bottom_right = (int(x_center + width * 0.5), int(y_center + height * 0.5))
 
-                    Function.draw_inference(frame, top_left, top_right, bottom_right, mode)
+                    Function.draw_inference(frame, top_left, top_right, bottom_right, tag, confs, i, mode)
 
                     arr.append(int(x_center - Function.TARGET_X))
 
@@ -153,10 +153,10 @@ class Function:
                 Function.LOW_EIGHT = abs(Function.DEVIATION_X)  & 0xff
 
                 if Function.FLAG == 1:
-                    if abs(Function.DEVIATION_X ) < 28:
+                    if abs(Function.DEVIATION_X ) < 24:
                         Function.DEVIATION_X  = 0
                 else :
-                    if abs(Function.DEVIATION_X ) < 28:
+                    if abs(Function.DEVIATION_X ) < 24:
                         Function.DEVIATION_X  = 0
                 if Function.DEVIATION_X > 0:
                     Function.DIRECTION = 1
@@ -186,7 +186,7 @@ class Function:
         while 1:
             data = self.ser.read(3)
             if data == b'\x03\x03\x03' or data == b'\x01\x01\x01':
-                Function.TARGET_X = 530  #空接500
+                Function.TARGET_X = 480  #空接500
                 Function.FLAG = 1
                 # print(data)
             if data == b'\x02\x02\x02':
@@ -195,7 +195,7 @@ class Function:
                 # print(data)
             print(data)
 
-    def draw_inference(frame, top_left, top_right, bottom_right, mode = 1):
+    def draw_inference(frame, top_left, top_right, bottom_right, tag, confs, i, mode = 1):
         if mode == 1:
             cv2.rectangle(frame, top_left, bottom_right, (0, 255, 255), 3, 8)
             cv2.putText(frame,str(float(round(confs[i], 2))), top_right, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
