@@ -186,7 +186,7 @@ class Function:
         while 1:
             data = self.ser.read(3)
             if data == b'\x03\x03\x03' or data == b'\x01\x01\x01':
-                Function.TARGET_X = 480  #空接500
+                Function.TARGET_X = 480  #空接 不抬升500 抬升480 
                 Function.FLAG = 1
                 # print(data)
             if data == b'\x02\x02\x02':
@@ -200,7 +200,7 @@ class Function:
             cv2.rectangle(frame, top_left, bottom_right, (0, 255, 255), 3, 8)
             cv2.putText(frame,str(float(round(confs[i], 2))), top_right, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
             cv2.putText(frame, tag, top_left, cv2.FONT_HERSHEY_SIMPLEX, 2, (255, 0, 255), 4)
-
+ 
     def draw_data(frame, img_size, mode = 1):
         if mode == 1:
             cv2.putText(frame, "judge_x = " + str(Function.DEVIATION_X), (0, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
