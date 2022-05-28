@@ -37,10 +37,11 @@ def run(Video, Fun, is_save = 0, mode = 0):
                 except:
                     print("Write Frame Error")
             cv2.imshow("frame",frame)
-            print("Inference == " + str(1/(t3 - t2)))
+            # print("Inference == " + str(1/(t3 - t2)))
         except mvsdk.CameraException as e:
             if e.error_code != mvsdk.CAMERA_STATUS_TIME_OUT:
                 print("CameraGetImageBuffer failed({}): {}".format(e.error_code, e.message) )
+            cv2.destroyAllWindows()
             video_capture.Video_capture.__init__(is_save)
     if Video.IS_SAVE_VIDEO:
         try:
@@ -70,13 +71,17 @@ if __name__ == "__main__":
     '''
     is_save = 0
     mode = 0
-    Video = video_capture.Video_capture(is_save)
+    while video_capture.Video_capture.CAMERA_OPEN == 0:
+        Video = video_capture.Video_capture(is_save)
+
     Fun = function.Function(**vars(opt))
     
-    thread1 = threading.Thread(target=(Fun.receive_data))
-    thread2 = threading.Thread(target=(Fun.send_data))
+    thread1 = threading.Thread(target=(Fun.receive_data),daemon=True)
+    thread2 = threading.Thread(target=(Fun.send_data),daemon=True)
     thread1.start()
     thread2.start()
     
     run(Video,Fun,is_save,mode)
+
+    
 
