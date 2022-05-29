@@ -8,7 +8,7 @@ import numpy as np
 class Video_capture:
     COLS = 1280
     ROWS = 800
-    ExposureTime = 30 * 1000
+    ExposureTime = 3 * 1000
     IS_SAVE_VIDEO = 0
     CAMERA_OPEN = 0
     # 相机初始化配置
@@ -71,8 +71,8 @@ class Video_capture:
             # 手动曝光，曝光时间30ms
             mvsdk.CameraSetAeState(self.hCamera, 0)
             mvsdk.CameraSetExposureTime(self.hCamera, Video_capture.ExposureTime )
-            mvsdk.CameraSetWbMode(self.hCamera, FALSE)
-            mvsdk.CameraSetOnceWB(self.hCamera)
+            # 颜色补偿
+            mvsdk.CameraSetGain(self.hCamera, 130, 119, 100)                         
 
             # 让SDK内部取图线程开始工作
             mvsdk.CameraPlay(self.hCamera)
@@ -128,15 +128,9 @@ class Video_capture:
 
 
 
-# if __name__ == "__main__" :
+if __name__ == "__main__" :
 
-#     video = Video_capture(1)
-#     # video.only_capture()
+    video = Video_capture(0)
+    video.only_capture()
 
-#     # thread1 = threading.Thread(target=Video_capture.only_capture,args=())
-#     thread2 = threading.Thread(target=video.only_capture)
-
-
-#     # thread1.start()
-#     thread2.start()
 
