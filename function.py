@@ -140,7 +140,7 @@ class Function:
 
                     arr.append(int(x_center - Function.TARGET_X)) 
 
-                if abs(Function.radix_sort(arr)[0]) < abs(Function.radix_sort(arr)[len(arr)-1]):
+                if abs(Function.radix_sort(arr)[0]) < abs(Function.radix_sort(arr)[-1]):
                     Function.DEVIATION_X = Function.radix_sort(arr)[0]
                 else:
                     Function.DEVIATION_X = Function.radix_sort(arr)[len(arr)-1]
@@ -152,15 +152,16 @@ class Function:
                 Function.LOW_EIGHT = abs(Function.DEVIATION_X)  & 0xff
 
                 if Function.FLAG == 1:
-                    if abs(Function.DEVIATION_X ) < 24:
+                    if abs(Function.DEVIATION_X ) < 24: #24
                         Function.DEVIATION_X  = 0
                 else :
-                    if abs(Function.DEVIATION_X ) < 24:
+                    if abs(Function.DEVIATION_X ) < 24: #24
                         Function.DEVIATION_X  = 0
                 if Function.DEVIATION_X > 0:
                     Function.DIRECTION = 1
 
             Function.draw_data(frame, img_size, mode)
+            # print('inference')
 
     def serial_connection(self):
         self.ser.port = "/dev/ttyUSB0"
@@ -194,6 +195,7 @@ class Function:
                     self.ser.write(('S' + str(2) + str(0) + str(0) + str(0) + str(0) + 'E').encode("utf-8"))
             except:
                 print('Serial Send Data Error')
+                cv2.putText(frame, " Serial Send Data Error " , (0, 350), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
                 self.ser.close()
                 Function.serial_connection(self)
                 
@@ -204,7 +206,7 @@ class Function:
             try:
                 data = self.ser.read(3)
                 if data == b'\x03\x03\x03' or data == b'\x01\x01\x01':
-                    Function.TARGET_X = 480  #空接 不抬升500 抬升480 
+                    Function.TARGET_X = 460  #空接 不抬升500 抬升480 
                     Function.FLAG = 1
                     # print(data)
                 if data == b'\x02\x02\x02':

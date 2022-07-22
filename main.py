@@ -11,12 +11,12 @@ import threading
 def parse_opt():
     parser = argparse.ArgumentParser()
     # 自启动 default 要改成绝对路径
-    parser.add_argument('--weights', nargs='+', type=str, default='/home/oyc/workspace/python_thread/best (3).pt', help='model path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default='/home/wolfvision-nuc01/workspace/engineer_python/best (3).pt', help='model path(s)')
     opt = parser.parse_args()
     return opt
 
 def run(Video, Fun, is_save = 0, mode = 0):
-    
+    # red = cv2.VideoCapture("/home/wolfvision-nuc01/Videos/vlc-record-2022-06-14-14h49m29s-2022-06-12-14-15-54.avi-.mp4")
     while (cv2.waitKey(1) & 0xFF) != ord('q'):
         try:
             t2 = time_sync()
@@ -26,7 +26,9 @@ def run(Video, Fun, is_save = 0, mode = 0):
             frame_data = (mvsdk.c_ubyte * FrameHead.uBytes).from_address(Video.pFrameBuffer)
             frame = np.frombuffer(frame_data, dtype=np.uint8)
             frame = frame.reshape((FrameHead.iHeight, FrameHead.iWidth, 1 if FrameHead.uiMediaType == mvsdk.CAMERA_MEDIA_TYPE_MONO8 else 3) )
-            
+
+            # re, frame = red.read()
+
             Fun.to_inference(frame, Fun.device, Fun.model, Fun.imgsz, Fun.stride, mode=mode)
             
             t3 = time_sync()
@@ -70,9 +72,11 @@ if __name__ == "__main__":
         默认 1
     '''
     is_save = 0
-    mode = 0
+    mode = 1
     while video_capture.Video_capture.CAMERA_OPEN == 0:
         Video = video_capture.Video_capture(is_save)
+
+    # Video = video_capture.Video_capture(is_save)
 
     Fun = function.Function(**vars(opt))
     
