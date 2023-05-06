@@ -19,8 +19,7 @@ class Function:
     DIRECTION = 0
     HIGH_EIGHT = 0
     LOW_EIGHT = 0
-    TARGET_X = 0
-    FLAG = 1
+    TARGET_X = 0 #夹取机构相对相机位置
 
     def __init__(self,weights):
         self.ser = serial.Serial()
@@ -143,7 +142,7 @@ class Function:
                 if abs(Function.radix_sort(arr)[0]) < abs(Function.radix_sort(arr)[-1]):
                     Function.DEVIATION_X = Function.radix_sort(arr)[0]
                 else:
-                    Function.DEVIATION_X = Function.radix_sort(arr)[len(arr)-1]
+                    Function.DEVIATION_X = Function.radix_sort(arr)[-1]
 
                 if mode == 1:
                     cv2.putText(frame, "real_x = " + str(Function.DEVIATION_X), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
@@ -161,7 +160,7 @@ class Function:
                     Function.DIRECTION = 1
 
             Function.draw_data(frame, img_size, mode)
-            # print('inference')
+
 
     def serial_connection(self):
         self.ser.port = "/dev/ttyUSB0"
@@ -175,6 +174,7 @@ class Function:
         except:
             print("Serial Open Error")
 
+    # 0 左 1右 2停
     def send_data(self):
         while 1:
             time.sleep(0.0005)
@@ -197,30 +197,8 @@ class Function:
                 print('Serial Send Data Error')
                 cv2.putText(frame, " Serial Send Data Error " , (0, 350), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 2)
                 self.ser.close()
-                Function.serial_connection(self)
+                Function.serial_connection(self)                
                 
-
-    def receive_data(self):
-        while 1:
-            time.sleep(0.05)
-            try:
-                data = self.ser.read(3)
-                if data == b'\x03\x03\x03' or data == b'\x01\x01\x01':
-                    Function.TARGET_X = 460  #空接 不抬升500 抬升480 
-                    Function.FLAG = 1
-                    # print(data)
-                if data == b'\x02\x02\x02':
-                    Function.TARGET_X = 415  #资源岛
-                    Function.FLAG = 0
-                    # print(data)
-                print(data)
-            except:
-                print('Receive Data Error')
-                self.ser.close()
-                Function.serial_connection(self)
-                
-                
-
     def draw_inference(frame, top_left, top_right, bottom_right, tag, confs, i, mode = 1):
         if mode == 1:
             cv2.rectangle(frame, top_left, bottom_right, (0, 255, 255), 3, 8)
